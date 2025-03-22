@@ -3,6 +3,7 @@ import matplotlib.patches as mpatches
 import numpy as np
 from matplotlib.projections.polar import PolarAxes
 from matplotlib.lines import Line2D
+import matplotlib.ticker as ticker
 
 def plot_skyplot_trajectory(
     satelites_epoch: np.ndarray,
@@ -89,4 +90,36 @@ def plot_skyplot_trajectory(
     ax.set_yticks(range(0, 91, 30))
     ax.set_yticklabels(['', '', '', ''])
 
+    plt.show()
+
+def plot_dop(dop_dict: dict):
+    time = dop_dict.keys()
+    gdop_list = [dop_dict[t][0] for t in time]
+    pdop_list = [dop_dict[t][1] for t in time]
+    tdop_list = [dop_dict[t][2] for t in time]
+    hdop_list = [dop_dict[t][3] for t in time]
+    vdop_list = [dop_dict[t][4] for t in time]
+
+    plt.figure(figsize=(14, 6))
+
+    plt.plot(time, gdop_list, label='GDOP', linewidth=2)
+    plt.plot(time, pdop_list, label='PDOP', linewidth=2)
+    plt.plot(time, tdop_list, label='TDOP', linewidth=2)
+    plt.plot(time, hdop_list, label='HDOP', linewidth=2)
+    plt.plot(time, vdop_list, label='GVDOP', linewidth=2)
+
+    def format_minutes(x, _):
+        h = int(x) // 60
+        m = int(x) % 60
+        return f"{h:02d}:{m:02d}"
+    
+    plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(format_minutes))
+    plt.xticks(np.arange(0, 24 * 60 + 1, 60*3))
+    plt.xlim(0, 24 * 60)
+    plt.ylim(bottom=0)
+    plt.xlabel('Czas [godziny]')
+    plt.ylabel('Wartość DOP')
+    plt.grid(True)
+    plt.legend()
+    # plt.tight_layout()
     plt.show()

@@ -1,7 +1,7 @@
 from transformations import ymd_to_gps
 from alm_module import get_alm_data
 import numpy as np
-from charts import plot_skyplot_trajectory
+from charts import plot_skyplot_trajectory, plot_dop
 from sat_calc import Satelite, Observer, calc_dop
 
 
@@ -38,5 +38,5 @@ for time_step in range(0, 24*60*60, 10*60):
     if len(A_list) >= 4:
         A_matrix = np.array(A_list)
         dop_dict[time_step/60] = calc_dop(A_matrix, observer.R_neu)
-
+plot_dop(dop_dict)
 # plot_skyplot_trajectory(satelites_epoch, el_mask, 0)
