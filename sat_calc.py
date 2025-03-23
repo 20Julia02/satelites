@@ -82,6 +82,16 @@ class Satelite:
         elevation = np.arcsin(u/distance)*180/np.pi
         return azimuth, elevation, r, dXYZ
     
+
+class Observer:
+    def __init__(self, phi, lam, h):
+        self.phi = math.radians(phi) 
+        self.lam = math.radians(lam) 
+        self.h = h
+        self.xyz = np.array(geodetic_to_cartesian(self.phi, self.lam, self.h))
+        self.R_neu = rotation_matrix_neu(self.phi, self.lam)
+
+
 def calc_dop(array_A, R_neu):
     array_Q = np.linalg.inv(array_A.T@array_A)
     gdop = np.sqrt(np.trace(array_Q))
@@ -92,10 +102,36 @@ def calc_dop(array_A, R_neu):
     vdop = np.sqrt(Qneu[2][2])
     return gdop, pdop, tdop, hdop, vdop
 
-class Observer:
-    def __init__(self, phi, lam, h):
-        self.phi = math.radians(phi) 
-        self.lam = math.radians(lam) 
-        self.h = h
-        self.xyz = np.array(geodetic_to_cartesian(self.phi, self.lam, self.h))
-        self.R_neu = rotation_matrix_neu(self.phi, self.lam)
+
+def sat_visibility_intervals(satelites_epoch: np.ndarray,
+                   el_mask: float = 10.0):
+    
+    sat_visibility = {}
+
+    for sat_index in range(satelites_epoch.shape[1]):
+        sat_name = None
+        intervals = []
+        in_visibility = False
+        start_time = None
+
+        for epoch_index in range(satelites_epoch.shape[0]):
+            row = satelites_epoch[epoch_index, sat_index]
+            if row[0] is not None and not np.isnan(row[4]):
+                elevation = row[4]
+                sat_name = row[0]
+
+                if elevation > el_mask:
+                    if not in_visibility:
+                        start_time = epoch_index * 10
+                        in_visibility = True
+                else:
+                    if in_visibility:
+                        end_time = epoch_index * 10
+                        intervals.append((start_time, end_time))
+                        in_visibility = False
+        if in_visibility:
+            intervals.append((start_time, 1440))
+        
+        if sat_name and intervals:
+            sat_visibility[sat_name] = intervals
+    return sat_visibility
