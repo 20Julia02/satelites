@@ -41,8 +41,9 @@ for time_step in range(0, 24*60*60, 10*60):
         dop_dict[time_step] = calc_dop(A_matrix, observer.R_neu)
     visible_sats_per_minute[time_step] = visible_count
 
+
 # plot_dop(dop_dict)
-# plot_skyplot_trajectory(sxatelites_epoch, el_mask, 0)
+plot_skyplot_trajectory(satelites_epoch, el_mask, 120)
 # plot_num_sats(visible_sats_per_minute, sat_type)
 # sat_vis = sat_visibility_intervals(satelites_epoch, el_mask)
 # plot_visibility(sat_vis)

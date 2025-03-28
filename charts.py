@@ -8,9 +8,12 @@ import matplotlib.ticker as ticker
 def plot_skyplot_trajectory(
     satelites_epoch: np.ndarray,
     el_mask: float = 10.0,
-    epoch_index: int = 0
+    minute: int = 0
 ) -> None:
-    
+    """
+    creates skyplot trajectory chart.
+    Input should be array 3D [epoch x satelites x [x, y, z, elevation, azimuth]]
+    """
     fontsize = 18
     plt.rc('grid', color='gray', linewidth=1, linestyle='--')
     plt.rc('xtick', labelsize=fontsize)
@@ -19,13 +22,12 @@ def plot_skyplot_trajectory(
 
     gnss_systems = {
         "PG": {"label": "GPS",     "color": "#70d6ff",  "count": 0},
-        "PE": {"label": "Galileo", "color": "#ff70a6",   "count": 0},
-        "PR": {"label": "Glonass", "color": "#ff9770",    "count": 0},
-        "PC": {"label": "Beidou",  "color": "#c77dff", "count": 0},
+        "PE": {"label": "Galileo", "color": "#ff70a6",  "count": 0},
+        "PR": {"label": "Glonass", "color": "#ff9770",  "count": 0},
+        "PC": {"label": "Beidou",  "color": "#c77dff",  "count": 0},
     }
 
     fig = plt.figure(figsize=(11, 7))
-    plt.subplots_adjust(bottom=0.08, top=0.90, left=0.005, right=0.74)
     ax: PolarAxes = fig.add_subplot(111, polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
@@ -34,13 +36,13 @@ def plot_skyplot_trajectory(
 
     for sat_index in range(num_sats):
         sat_name = None
-        start = epoch_index
+        start = minute//10
         while start > 0:
             entry = satelites_epoch[start - 1, sat_index]
             if entry[0] is None or np.isnan(entry[4]) or entry[4] <= el_mask:
                 break
             start -= 1
-        end = epoch_index
+        end = minute//10
         while end < num_epochs - 1:
             entry = satelites_epoch[end + 1, sat_index]
             if entry[0] is None or np.isnan(entry[4]) or entry[4] <= el_mask:
@@ -63,7 +65,7 @@ def plot_skyplot_trajectory(
 
         trajectory = np.array(trajectory)
 
-        current = satelites_epoch[epoch_index, sat_index]
+        current = satelites_epoch[minute//10, sat_index]
         if system:
             if current[0] is not None and not np.isnan(current[4]) and not np.isnan(current[5]) and current[4] > el_mask:
                 ax.plot(trajectory[:, 0], trajectory[:, 1], color=system["color"], linewidth=1.0, alpha=0.6)
@@ -89,10 +91,13 @@ def plot_skyplot_trajectory(
 
     ax.set_yticks(range(0, 91, 30))
     ax.set_yticklabels(['', '', '', ''])
-
+    plt.tight_layout()
+    plt.title('Trajektoria satelitów skyplot')
+    plt.subplots_adjust(top=0.87, bottom=0.05, left=0.005, right=0.74)
     plt.show()
 
 def plot_dop(dop_dict: dict):
+
     time = sorted([t / 60 for t in dop_dict.keys()])
     gdop_list = [dop_dict[t*60][0] for t in time]
     pdop_list = [dop_dict[t*60][1] for t in time]
@@ -100,13 +105,13 @@ def plot_dop(dop_dict: dict):
     hdop_list = [dop_dict[t*60][3] for t in time]
     vdop_list = [dop_dict[t*60][4] for t in time]
 
-    plt.figure(figsize=(14, 6))
+    plt.figure(figsize=(14, 7))
 
-    plt.plot(time, gdop_list, label='GDOP', linewidth=2)
-    plt.plot(time, pdop_list, label='PDOP', linewidth=2)
-    plt.plot(time, tdop_list, label='TDOP', linewidth=2)
-    plt.plot(time, hdop_list, label='HDOP', linewidth=2)
-    plt.plot(time, vdop_list, label='VDOP', linewidth=2)
+    plt.plot(time, gdop_list, label='GDOP', linewidth=2, color = "#70d6ff")
+    plt.plot(time, pdop_list, label='PDOP', linewidth=2, color = "#ff70a6")
+    plt.plot(time, tdop_list, label='TDOP', linewidth=2, color = "#ff9770")
+    plt.plot(time, hdop_list, label='HDOP', linewidth=2, color = "#c77dff")
+    plt.plot(time, vdop_list, label='VDOP', linewidth=2, color = "#1982c4")
 
     def format_minutes(x, _):
         h = int(x) // 60
@@ -121,31 +126,32 @@ def plot_dop(dop_dict: dict):
     plt.ylabel('Wartość DOP')
     plt.grid(True)
     plt.legend()
-    # plt.tight_layout()
+    plt.title('Wykres wartości DOP w czasie')
+    plt.subplots_adjust(top=0.95, bottom=0.08)
     plt.show()
 
 def plot_num_sats(time_sats_dict: dict, sat_list):
     
     system_map = {
-        0: ('PG', 'GPS'),
-        1: ('PR', 'GLONASS'),
-        2: ('PE', 'GALILEO'),
-        3: ('PC', 'BEIDOU')
+        0: ('PG', 'GPS',    "#70d6ff"),
+        1: ('PR', 'GLONASS',"#ff70a6"),
+        2: ('PE', 'GALILEO',"#ff9770"),
+        3: ('PC', 'BEIDOU' ,"#c77dff")
     }
 
     time = sorted([t / 60 for t in time_sats_dict.keys()])
     
-    plt.figure(figsize=(14, 6))
+    plt.figure(figsize=(14, 7))
     sum_sats = np.zeros(len(time))
 
     for sat_type in sat_list:
         if sat_type in system_map:
-            prefix, label = system_map[sat_type]
+            prefix, label, color = system_map[sat_type]
             values = [time_sats_dict[int(t * 60)][prefix] for t in time]
-            plt.plot(time, values, label=label, linewidth=2)
+            plt.plot(time, values, label=label, linewidth=2, color = color)
             sum_sats += np.array(values)
     
-    plt.plot(time, sum_sats, label='Wszystkie', linewidth=2.5, color='black')
+    plt.plot(time, sum_sats, label='Wszystkie', linewidth=2.5, color='#1982c4')
 
     def format_minutes(x, _):
         h = int(x) // 60
@@ -161,6 +167,8 @@ def plot_num_sats(time_sats_dict: dict, sat_list):
     plt.grid(True)
     plt.legend()
     plt.tight_layout()
+    plt.title('Wykres liczby satelitów w czasie')
+    plt.subplots_adjust(top=0.95, bottom=0.08)
     plt.show()
 
 
@@ -175,7 +183,7 @@ def plot_visibility(sat_visibility: dict):
     yticks = []
     ylabels = []
 
-    for i, (sat_name, intervals) in enumerate(sorted(sat_visibility.items())):
+    for i, (sat_name, intervals) in enumerate(sorted(sat_visibility.items(), reverse=True)):
         bars = [(start, end - start) for start, end in intervals]
         system_prefix = sat_name[:2]
         color = gnss_systems[system_prefix]["color"]
@@ -236,7 +244,7 @@ def plot_elevations(satelites_epoch, el_mask=10):
     plt.xlim(0, 1440)
     plt.ylim(0, 90)
     plt.tight_layout()
-    plt.subplots_adjust(top=0.97, bottom=0.25)
+    plt.subplots_adjust(top=0.97, bottom=0.25, left=0.05)
     plt.xlabel('Czas [godziny]')
     plt.ylabel('Elewacja [°]')
     plt.title('Elewacja satelitów w czasie')
