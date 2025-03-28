@@ -1,3 +1,4 @@
+from matplotlib.figure import Figure
 import matplotlib.pyplot as plt 
 import matplotlib.patches as mpatches
 import numpy as np
@@ -6,6 +7,7 @@ from matplotlib.lines import Line2D
 import matplotlib.ticker as ticker
 
 def plot_skyplot_trajectory(
+    fig: Figure,
     satelites_epoch: np.ndarray,
     el_mask: float = 10.0,
     minute: int = 0
@@ -15,6 +17,7 @@ def plot_skyplot_trajectory(
     Input should be array 3D [epoch x satelites x [x, y, z, elevation, azimuth]]
     """
     fontsize = 18
+    fig.clear()
     plt.rc('grid', color='gray', linewidth=1, linestyle='--')
     plt.rc('xtick', labelsize=fontsize)
     plt.rc('ytick', labelsize=fontsize)
@@ -27,7 +30,6 @@ def plot_skyplot_trajectory(
         "PC": {"label": "Beidou",  "color": "#c77dff",  "count": 0},
     }
 
-    fig = plt.figure(figsize=(11, 7))
     ax: PolarAxes = fig.add_subplot(111, polar=True)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
@@ -87,14 +89,11 @@ def plot_skyplot_trajectory(
             mpatches.Patch(color=system["color"], label=f"{system['count']:02d}  {system['label']}")
         )
     legend_handles.append(Line2D([0],[0], color="#e63946", linestyle='-.', linewidth=2, label=f"Maska {el_mask}°"))
-    plt.legend(handles=legend_handles, bbox_to_anchor=(1.1, 1.05), loc='upper left', borderaxespad=0.0)
+    ax.legend(handles=legend_handles, bbox_to_anchor=(1.1, 1.05), loc='upper left', borderaxespad=0.0)
 
     ax.set_yticks(range(0, 91, 30))
     ax.set_yticklabels(['', '', '', ''])
-    plt.tight_layout()
-    plt.title('Trajektoria satelitów skyplot')
-    plt.subplots_adjust(top=0.87, bottom=0.05, left=0.005, right=0.74)
-    plt.show()
+    fig.tight_layout()
 
 def plot_dop(dop_dict: dict):
 
