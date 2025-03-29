@@ -5,6 +5,9 @@ import numpy as np
 from matplotlib.projections.polar import PolarAxes
 from matplotlib.lines import Line2D
 import matplotlib.ticker as ticker
+from pyproj import Transformer
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 
 def plot_skyplot_trajectory(
     fig: Figure,
@@ -16,8 +19,10 @@ def plot_skyplot_trajectory(
     creates skyplot trajectory chart.
     Input should be array 3D [epoch x satelites x [x, y, z, elevation, azimuth]]
     """
-    fontsize = 18
-    fig.clear()
+    fontsize = 16
+    if fig.axes:
+        fig.delaxes(fig.axes[0])
+
     plt.rc('grid', color='gray', linewidth=1, linestyle='--')
     plt.rc('xtick', labelsize=fontsize)
     plt.rc('ytick', labelsize=fontsize)
@@ -31,6 +36,7 @@ def plot_skyplot_trajectory(
     }
 
     ax: PolarAxes = fig.add_subplot(111, polar=True)
+    ax.set_position([0.1, 0.1, 0.65, 0.75])
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
 
@@ -89,13 +95,18 @@ def plot_skyplot_trajectory(
             mpatches.Patch(color=system["color"], label=f"{system['count']:02d}  {system['label']}")
         )
     legend_handles.append(Line2D([0],[0], color="#e63946", linestyle='-.', linewidth=2, label=f"Maska {el_mask}°"))
-    ax.legend(handles=legend_handles, bbox_to_anchor=(1.1, 1.05), loc='upper left', borderaxespad=0.0)
+    ax.legend(handles=legend_handles, 
+            bbox_to_anchor=(1.02, 0.5),
+            borderaxespad=5,
+            fontsize=9)
 
     ax.set_yticks(range(0, 91, 30))
     ax.set_yticklabels(['', '', '', ''])
-    fig.tight_layout()
 
-def plot_dop(dop_dict: dict):
+def plot_dop(fig: Figure, dop_dict: dict):
+
+    fig.clear()
+    ax = fig.add_subplot(111)
 
     time = sorted([t / 60 for t in dop_dict.keys()])
     gdop_list = [dop_dict[t*60][0] for t in time]
@@ -104,33 +115,41 @@ def plot_dop(dop_dict: dict):
     hdop_list = [dop_dict[t*60][3] for t in time]
     vdop_list = [dop_dict[t*60][4] for t in time]
 
-    plt.figure(figsize=(14, 7))
-
-    plt.plot(time, gdop_list, label='GDOP', linewidth=2, color = "#70d6ff")
-    plt.plot(time, pdop_list, label='PDOP', linewidth=2, color = "#ff70a6")
-    plt.plot(time, tdop_list, label='TDOP', linewidth=2, color = "#ff9770")
-    plt.plot(time, hdop_list, label='HDOP', linewidth=2, color = "#c77dff")
-    plt.plot(time, vdop_list, label='VDOP', linewidth=2, color = "#1982c4")
+    ax.plot(time, gdop_list, label='GDOP', linewidth=2, color = "#70d6ff")
+    ax.plot(time, pdop_list, label='PDOP', linewidth=2, color = "#ff70a6")
+    ax.plot(time, tdop_list, label='TDOP', linewidth=2, color = "#ff9770")
+    ax.plot(time, hdop_list, label='HDOP', linewidth=2, color = "#c77dff")
+    ax.plot(time, vdop_list, label='VDOP', linewidth=2, color = "#1982c4")
 
     def format_minutes(x, _):
         h = int(x) // 60
         m = int(x) % 60
         return f"{h:02d}:{m:02d}"
     
-    plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(format_minutes))
-    plt.xticks(np.arange(0, 24 * 60 + 1, 60*3))
-    plt.xlim(0, 24 * 60)
-    plt.ylim(bottom=0)
-    plt.xlabel('Czas [godziny]')
-    plt.ylabel('Wartość DOP')
-    plt.grid(True)
-    plt.legend()
-    plt.title('Wykres wartości DOP w czasie')
-    plt.subplots_adjust(top=0.95, bottom=0.08)
-    plt.show()
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_minutes))
+    ax.set_xticks(np.arange(0, 24 * 60 + 1, 60*3))
+    ax.set_xlim(0, 24 * 60)
+    ax.set_ylim(bottom=0)
+    ax.set_xlabel('Czas [godziny]')
+    ax.set_ylabel('Wartość DOP')
+    ax.grid(True)
+    ax.legend()
+    ax.set_title('Wykres wartości DOP w czasie')
+    ax.grid(True)
+    ax.legend(
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        borderaxespad=0,
+        fontsize=9
+    )
+    fig.tight_layout(rect=(0, 0, 1.08, 1))
 
-def plot_num_sats(time_sats_dict: dict, sat_list):
+
+def plot_num_sats(fig: Figure, time_sats_dict: dict, sat_list):
     
+    fig.clear()
+    ax = fig.add_subplot(111)
+
     system_map = {
         0: ('PG', 'GPS',    "#70d6ff"),
         1: ('PR', 'GLONASS',"#ff70a6"),
@@ -140,45 +159,48 @@ def plot_num_sats(time_sats_dict: dict, sat_list):
 
     time = sorted([t / 60 for t in time_sats_dict.keys()])
     
-    plt.figure(figsize=(14, 7))
     sum_sats = np.zeros(len(time))
 
     for sat_type in sat_list:
         if sat_type in system_map:
             prefix, label, color = system_map[sat_type]
             values = [time_sats_dict[int(t * 60)][prefix] for t in time]
-            plt.plot(time, values, label=label, linewidth=2, color = color)
+            ax.plot(time, values, label=label, linewidth=2, color = color)
             sum_sats += np.array(values)
     
-    plt.plot(time, sum_sats, label='Wszystkie', linewidth=2.5, color='#1982c4')
+    ax.plot(time, sum_sats, label='Wszystkie', linewidth=2.5, color='#1982c4')
 
     def format_minutes(x, _):
         h = int(x) // 60
         m = int(x) % 60
         return f"{h:02d}:{m:02d}"
 
-    plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(format_minutes))
-    plt.xticks(np.arange(0, 24 * 60 + 1, 180))
-    plt.xlim(0, 24 * 60)
-    plt.ylim(bottom=0)
-    plt.xlabel('Czas [godziny]')
-    plt.ylabel('Liczba satelitów')
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.title('Wykres liczby satelitów w czasie')
-    plt.subplots_adjust(top=0.95, bottom=0.08)
-    plt.show()
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_minutes))
+    ax.set_xticks(np.arange(0, 24 * 60 + 1, 180))
+    ax.set_xlim(0, 24 * 60)
+    ax.set_ylim(bottom=0)
+    ax.set_xlabel('Czas [godziny]')
+    ax.set_ylabel('Liczba satelitów')
+    ax.grid(True)
+    ax.legend(
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        borderaxespad=0,
+        fontsize=9
+    )
+    ax.set_title('Wykres liczby satelitów w czasie')
+    fig.tight_layout(rect=(0, 0, 1.08, 1))
 
 
-def plot_visibility(sat_visibility: dict):
+def plot_visibility(fig: Figure, sat_visibility: dict):
+    fig.clear()
     gnss_systems = {
         "PG": {"label": "GPS",     "color": "#70d6ff"},
         "PE": {"label": "Galileo", "color": "#ff70a6"},
         "PR": {"label": "Glonass", "color": "#ff9770"},
         "PC": {"label": "Beidou",  "color": "#c77dff"},
     }
-    fig, ax = plt.subplots(figsize=(14, len(sat_visibility) * 0.06))
+    ax = fig.add_subplot(111)
     yticks = []
     ylabels = []
 
@@ -192,28 +214,29 @@ def plot_visibility(sat_visibility: dict):
             ylabels.append(sat_name)
         else:
             ylabels.append('')
-    ax.set_ylim(-0.5, len(sat_visibility) - 0.5)
+    ax.set_ylim(-0.4, len(sat_visibility) - 0.4)
     ax.set_yticks(yticks)
     ax.set_yticklabels(ylabels, fontsize=7)
     ax.set_xlabel("Czas [godziny]")
     ax.set_xlim(0, 1440)
-    ax.xaxis.set_major_locator(plt.MultipleLocator(180))
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(180))
 
     def format_minutes(x, _):
         h = int(x) // 60
         m = int(x) % 60
         return f"{h:02d}:{m:02d}"
     
-    ax.xaxis.set_major_formatter(plt.FuncFormatter(format_minutes))
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_minutes))
     ax.grid(True, zorder=1)
-    plt.title("Okna widoczności satelitów")
-    plt.tight_layout()
-    plt.show()
+    ax.set_title("Okna widoczności satelitów")
+    fig.tight_layout(rect=(0, 0, 1.08, 1))
 
-def plot_elevations(satelites_epoch, el_mask=10):
+def plot_elevations(fig: Figure, satelites_epoch, el_mask=10):
 
-    plt.figure(figsize=(14, 8))
-    plt.axhline(y=el_mask, color='#e63946', linestyle='--', linewidth=1.5, label=f'Maska {el_mask}°')
+    fig.clear()
+    ax = fig.add_subplot(111)
+
+    ax.axhline(y=el_mask, color='#e63946', linestyle='--', linewidth=1.5, label=f'Maska {el_mask}°')
 
     num_epochs, num_sats, _ = satelites_epoch.shape
     time = [t * 10 for t in range(num_epochs)] 
@@ -231,22 +254,90 @@ def plot_elevations(satelites_epoch, el_mask=10):
             else:
                 sat_elev.append(np.nan)
         if sat_name:
-            plt.plot(time, sat_elev, label = sat_name, linewidth=1)
+            ax.plot(time, sat_elev, label = sat_name, linewidth=1)
 
     def format_minutes(x, _):
         h = int(x) // 60
         m = int(x) % 60
         return f"{h:02}:{m:02}"
 
-    plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(format_minutes))
-    plt.xticks(np.arange(0, 1441, 180))
-    plt.xlim(0, 1440)
-    plt.ylim(0, 90)
-    plt.tight_layout()
-    plt.subplots_adjust(top=0.97, bottom=0.25, left=0.05)
-    plt.xlabel('Czas [godziny]')
-    plt.ylabel('Elewacja [°]')
-    plt.title('Elewacja satelitów w czasie')
-    plt.grid(True)
-    plt.legend(ncol=16, fontsize=7, loc='upper center', bbox_to_anchor=(0.5, -0.095))
-    plt.show()
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_minutes))
+    ax.set_xticks(np.arange(0, 1441, 180))
+    ax.set_xlim(0, 1440)
+    ax.set_ylim(0, 90)
+    ax.set_xlabel('Czas [godziny]')
+    ax.set_ylabel('Elewacja [°]')
+    ax.set_title('Elewacja satelitów w czasie')
+    ax.grid(True)
+    ax.legend(ncol=12, fontsize=7, loc='upper center', bbox_to_anchor=(0.5, -0.1))
+    fig.tight_layout(rect=(0, -0.08, 1, 1))
+
+
+def plot_positions_map(fig, satelites_epoch, observer, minute=0, el_mask=0):
+    
+    fig.clear()
+
+    ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
+    ax.set_global()
+    ax.coastlines(color='darkgray', linewidth=0.5)
+    gl = ax.gridlines(draw_labels=True, color='#ffffff6a', linestyle='-', linewidth=0.5)
+    gl.top_labels = False
+    gl.right_labels = False
+    ax.add_feature(cfeature.BORDERS, linestyle=':', color="lightgrey")
+    ax.add_feature(cfeature.LAND, facecolor='#f0ede6')
+    ax.add_feature(cfeature.OCEAN, facecolor='#94c5eb')
+
+    ax.plot(observer[1], observer[0], marker='v', color='#d90429',
+        markersize=10, transform=ccrs.Geodetic(), label="Obserwator")
+
+    ax.set_title("Pozycje satelitów na mapie", fontsize=14)
+
+    gnss_systems = {
+        "PG": {"label": "GPS",     "color": "#70d6ff"},
+        "PE": {"label": "Galileo", "color": "#ff70a6"},
+        "PR": {"label": "Glonass", "color": "#ff9770"},
+        "PC": {"label": "Beidou",  "color": "#c77dff"},
+    }
+
+    ecef2geodetic = Transformer.from_crs("epsg:4978", "epsg:4326", always_xy=True)
+    num_epochs, num_sats, _ = satelites_epoch.shape
+
+    for sat_index in range(num_sats):
+        sat_name = None
+        start = minute
+        while start > 0:
+            entry = satelites_epoch[start - 1, sat_index]
+            if entry[0] is None or np.isnan(entry[4]) or entry[4] <= el_mask:
+                break
+            start -= 1
+        end = minute
+        while end < num_epochs - 1:
+            entry = satelites_epoch[end + 1, sat_index]
+            if entry[0] is None or np.isnan(entry[4]) or entry[4] <= el_mask:
+                break
+            end+=1
+
+        trajectory = []
+        for t in range(start, end + 1):
+            entry = satelites_epoch[t, sat_index]
+            if entry[0] is not None and not np.isnan(entry[4]) and entry[4] >= el_mask:
+                sat_name = entry[0]
+                lon, lat, alt = ecef2geodetic.transform(entry[1], entry[2], entry[3])
+                trajectory.append((lon, lat))
+        if not trajectory or sat_name is None:
+            continue
+
+        system_prefix = sat_name[:2]
+        system = gnss_systems.get(system_prefix)
+        trajectory = np.array(trajectory)
+
+        if len(trajectory) > 1 and system:
+            lons, lats = zip(*trajectory)
+            ax.plot(lons, lats, color=system["color"], linewidth=1, alpha=0.6, transform=ccrs.Geodetic())
+
+        current = satelites_epoch[minute, sat_index]
+        if current[0] is not None and system:
+            if current[4] > el_mask:
+                lon, lat, alt = ecef2geodetic.transform(current[1], current[2], current[3])
+                ax.plot(lon, lat, 'o', color=system['color'], markersize=5, transform=ccrs.Geodetic())
+                ax.annotate(current[0][1:], xy=(lon, lat), transform=ccrs.Geodetic(), xytext=(0, 5), textcoords='offset points', ha='center', va='bottom', bbox=dict(boxstyle="round,pad=0.05", fc=system["color"], alpha=0.7), fontsize=10)

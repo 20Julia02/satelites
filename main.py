@@ -1,3 +1,4 @@
+from ast import main
 import sys
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtWidgets import (
@@ -5,9 +6,9 @@ from PyQt6.QtWidgets import (
     QVBoxLayout, QTabWidget, QLineEdit,
     QLabel, QPushButton, QSpinBox, QFormLayout, QHBoxLayout, QGroupBox
 )
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-from charts import plot_skyplot_trajectory, plot_dop, plot_num_sats, plot_visibility, plot_elevations
+from charts import plot_positions_map, plot_skyplot_trajectory, plot_dop, plot_num_sats, plot_visibility, plot_elevations
 from sat_calc import Satelite, Observer, calc_dop, sat_visibility_intervals
 from transformations import ymd_to_gps
 from alm_module import get_alm_data
@@ -68,9 +69,13 @@ class ParamsTab(QWidget):
         systems_group = QGroupBox("Systemy GNSS")
         systems_layout = QHBoxLayout()
         self.gps_check = QtWidgets.QCheckBox("GPS")
+        self.gps_check.setChecked(True)
         self.glonass_check = QtWidgets.QCheckBox("GLONASS")
+        self.glonass_check.setChecked(True)
         self.galileo_check = QtWidgets.QCheckBox("GALILEO")
+        self.galileo_check.setChecked(True)
         self.beidou_check = QtWidgets.QCheckBox("BEIDOU")
+        self.beidou_check.setChecked(True)
 
         systems_layout.addWidget(self.gps_check)
         systems_layout.addWidget(self.glonass_check)
@@ -110,12 +115,14 @@ class ParamsTab(QWidget):
             systems.add(2)
         if self.beidou_check.isChecked():
             systems.add(3)
+        
+        qdate = self.day.date()
         data = {
             "lat": float(self.lat_input.text()),
             "lon": float(self.lon_input.text()),
             "h": float(self.h_input.text()),
             "el_mask": self.elev_cutoff_input.value(),
-            "date": self.day.date().getDate(),
+            "date": (qdate.year(), qdate.month(), qdate.day()),
             "time": self.time.time().toString("HH:mm"),
             "almanac_path": self.almanac_path_input.text(),
             "systems": systems
@@ -129,7 +136,7 @@ class SkyPlotTab(QWidget):
         self.satelites_epoch = None
         self.el_mask = 0
 
-        self.figure = Figure()
+        self.figure = Figure(figsize=(14, 8))
         self.canvas = FigureCanvasQTAgg(self.figure)
 
         self.slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
@@ -170,19 +177,139 @@ class SkyPlotTab(QWidget):
         plot_skyplot_trajectory(self.figure, self.satelites_epoch, self.el_mask, minute_index * 10)
         self.canvas.draw()
 
+
+class ChartsTab(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.satelites_epoch = None
+        self.el_mask = 0
+        self.dop_dict = None
+        self.visible_sats_per_minute = None
+        self.sat_type = None
+
+        scroll_area = QtWidgets.QScrollArea()
+        scroll_area.setWidgetResizable(True)
+
+        self.inner_widget = QWidget()
+        self.inner_layout = QVBoxLayout(self.inner_widget)
+        self.inner_layout.setSpacing(30)
+
+        scroll_area.setWidget(self.inner_widget)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(scroll_area)
+        self.setLayout(main_layout)
+
+    def update_data(self, satelites_epoch, el_mask, dop_dict, visible_sats_per_minute, sat_type):
+        self.satelites_epoch = satelites_epoch
+        self.el_mask = el_mask
+        self.dop_dict = dop_dict
+        self.visible_sats_per_minute = visible_sats_per_minute
+        self.sat_type = sat_type
+        self.draw_charts()
+
+    def draw_charts(self):
+        while self.inner_layout.count():
+            item = self.inner_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+        if self.dop_dict:
+            fig_dop =  Figure(figsize=(6, 5))
+            canvas_dop = FigureCanvasQTAgg(fig_dop)
+            plot_dop(fig_dop, self.dop_dict)
+            self.inner_layout.addWidget(canvas_dop)
+        if self.visible_sats_per_minute and self.sat_type:
+            fig_num_sats = Figure(figsize=(6, 5))
+            canvas_num_sats = FigureCanvasQTAgg(fig_num_sats)
+            plot_num_sats(fig_num_sats, self.visible_sats_per_minute, self.sat_type)
+            self.inner_layout.addWidget(canvas_num_sats)
+        if self.satelites_epoch is None:
+            return
+        fig_elev = Figure(figsize=(10, 8))
+        canvas_elev = FigureCanvasQTAgg(fig_elev)
+        plot_elevations(fig_elev, self.satelites_epoch, self.el_mask)
+        self.inner_layout.addWidget(canvas_elev)
+
+        sat_vis = sat_visibility_intervals(self.satelites_epoch, self.el_mask)
+        fig_visibility = Figure(figsize=(5, len(sat_vis) * 0.06))
+        canvas_visibility = FigureCanvasQTAgg(fig_visibility)
+        plot_visibility(fig_visibility, sat_vis)
+        self.inner_layout.addWidget(canvas_visibility)
+
+        total_height = self.inner_layout.sizeHint().height()
+        self.inner_widget.setMinimumHeight(total_height)
+
+
+class MapTab(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.satelites_epoch = None
+        self.observer = None
+        self.el_mask = 0
+
+        self.figure = Figure(figsize=(14, 8), constrained_layout=True)
+        self.canvas = FigureCanvasQTAgg(self.figure)
+
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
+        self.slider.setMinimum(0)
+        self.slider.setMaximum(6*24-1)
+        self.slider.setTickInterval(1)
+        self.slider.setTickPosition(QtWidgets.QSlider.TickPosition.TicksBelow)
+        self.slider.valueChanged.connect(self.slider_moved)
+
+        self.time_label = QLabel("Godzina: 00:00")
+        self.time_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.canvas)
+        layout.addWidget(self.time_label)
+        layout.addWidget(self.slider)
+
+        self.setLayout(layout)
+    
+    def update_data(self, satelites_epoch, el_mask, observer):
+        self.satelites_epoch = satelites_epoch
+        self.el_mask = el_mask
+        self.observer = observer
+        self.slider.setValue(0)
+        self.draw_position_map(0)
+    
+    def slider_moved(self, value):
+         self.draw_position_map(value)
+        
+    def draw_position_map(self, minute_index):
+        if self.satelites_epoch is None or self.observer is None:
+            return
+        
+        hour = minute_index * 10 // 60
+        minute = (minute_index * 10) % 60
+        time_str = f"{hour:02d}:{minute:02d}"
+        self.time_label.setText(f"Godzina: {time_str}")
+
+        plot_positions_map(self.figure, self.satelites_epoch, self.observer, minute_index, self.el_mask)
+        self.canvas.draw()
+    
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
         self.setWindowTitle("GNNS Calculator")
-        self.setMinimumSize(600, 400)
+        self.setMinimumSize(1100, 800)
 
         tabs = QTabWidget()
         self.params_tab = ParamsTab()
+        self.charts_tab = ChartsTab()
         self.plot_tab = SkyPlotTab()
+        self.map_tab = MapTab()
         
         tabs.addTab(self.params_tab, "Parametry")
         tabs.addTab(self.plot_tab, "Sky Plot")
+        tabs.addTab(self.charts_tab, "Wykresy")
+        tabs.addTab(self.map_tab, "Ground Track")
 
         central_widget = QWidget()
         layout = QVBoxLayout()
@@ -196,11 +323,9 @@ class MainWindow(QMainWindow):
 
     def process_inputs(self, input: dict):
         satelites_epoch, dop_dict, visible_sats_per_minute = self.calculate_satelites(input)
-        sat_vis = sat_visibility_intervals(satelites_epoch, input["el_mask"])
-        hour, minute = map(int, input["time"].split(":"))
-        time_index = hour * 60 + minute
         self.plot_tab.update_data(satelites_epoch, input["el_mask"])
-
+        self.charts_tab.update_data(satelites_epoch, input["el_mask"], dop_dict, visible_sats_per_minute, input["systems"])
+        self.map_tab.update_data(satelites_epoch, input["el_mask"], (input["lat"], input["lon"]))
     def calculate_satelites(self, input: dict):
         sat_type = input["systems"]
         nav_data = get_alm_data(input["almanac_path"])
