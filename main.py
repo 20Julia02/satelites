@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
 )
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-from charts import plot_positions_map, plot_skyplot_trajectory, plot_dop, plot_num_sats, plot_visibility, plot_elevations
+from charts import plot_visibility_radius, plot_positions_map, plot_skyplot_trajectory, plot_dop, plot_num_sats, plot_visibility, plot_elevations
 from sat_calc import Satelite, Observer, calc_dop, sat_visibility_intervals
 from transformations import ymd_to_gps
 from alm_module import get_alm_data
@@ -291,7 +291,57 @@ class MapTab(QWidget):
 
         plot_positions_map(self.figure, self.satelites_epoch, self.observer, minute_index, self.el_mask)
         self.canvas.draw()
+
+
+class MapRadiusTab(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.satelites_epoch = None
+        self.el_mask = 0
+
+        self.figure = Figure(figsize=(14, 8), constrained_layout=True)
+        self.canvas = FigureCanvasQTAgg(self.figure)
+
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
+        self.slider.setMinimum(0)
+        self.slider.setMaximum(6*24-1)
+        self.slider.setTickInterval(1)
+        self.slider.setTickPosition(QtWidgets.QSlider.TickPosition.TicksBelow)
+        self.slider.valueChanged.connect(self.slider_moved)
+
+        self.time_label = QLabel("Godzina: 00:00")
+        self.time_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.canvas)
+        layout.addWidget(self.time_label)
+        layout.addWidget(self.slider)
+
+        self.setLayout(layout)
     
+    def update_data(self, satelites_epoch, el_mask):
+        self.satelites_epoch = satelites_epoch
+        self.el_mask = el_mask
+        self.slider.setValue(0)
+        self.draw_sats_map(0)
+    
+    def slider_moved(self, value):
+         self.draw_sats_map(value)
+        
+    def draw_sats_map(self, minute_index):
+        if self.satelites_epoch is None:
+            return
+        hour = minute_index * 10 // 60
+        minute = (minute_index * 10) % 60
+        time_str = f"{hour:02d}:{minute:02d}"
+        self.time_label.setText(f"Godzina: {time_str}")
+
+        try:
+            plot_visibility_radius(self.figure, self.satelites_epoch, minute_index, self.el_mask)
+            self.canvas.draw()
+        except Exception as e:
+            print(f"[BŁĄD RYSOWANIA MAPY WIDOCZNOŚCI]: {e}")
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -305,11 +355,13 @@ class MainWindow(QMainWindow):
         self.charts_tab = ChartsTab()
         self.plot_tab = SkyPlotTab()
         self.map_tab = MapTab()
+        self.map_radius_tab = MapRadiusTab()
         
         tabs.addTab(self.params_tab, "Parametry")
         tabs.addTab(self.plot_tab, "Sky Plot")
         tabs.addTab(self.charts_tab, "Wykresy")
         tabs.addTab(self.map_tab, "Ground Track")
+        tabs.addTab(self.map_radius_tab, "Mapa widoczności satelitów")
 
         central_widget = QWidget()
         layout = QVBoxLayout()
@@ -326,6 +378,8 @@ class MainWindow(QMainWindow):
         self.plot_tab.update_data(satelites_epoch, input["el_mask"])
         self.charts_tab.update_data(satelites_epoch, input["el_mask"], dop_dict, visible_sats_per_minute, input["systems"])
         self.map_tab.update_data(satelites_epoch, input["el_mask"], (input["lat"], input["lon"]))
+        self.map_radius_tab.update_data(satelites_epoch, input["el_mask"])
+    
     def calculate_satelites(self, input: dict):
         sat_type = input["systems"]
         nav_data = get_alm_data(input["almanac_path"])

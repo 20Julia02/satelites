@@ -8,6 +8,12 @@ import matplotlib.ticker as ticker
 from pyproj import Transformer
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
+from sat_calc import Satelite
+import cartopy.crs as ccrs
+from shapely.geometry import Polygon
+from cartopy import geodesic
+from cartopy.feature import ShapelyFeature
+
 
 def plot_skyplot_trajectory(
     fig: Figure,
@@ -346,3 +352,32 @@ def plot_positions_map(fig, satelites_epoch, observer, minute=0, el_mask=0):
                 lon, lat, alt = ecef2geodetic.transform(current[1], current[2], current[3])
                 ax.plot(lon, lat, 'o', color=system['color'], markersize=5, transform=ccrs.Geodetic())
                 ax.annotate(current[0][1:], xy=(lon, lat), transform=ccrs.Geodetic(), xytext=(0, 5), textcoords='offset points', ha='center', va='bottom', bbox=dict(boxstyle="round,pad=0.05", fc=system["color"], alpha=0.7), fontsize=10)
+
+def plot_visibility_radius(fig, satelites_epoch, minute=0, el_mask=0):
+
+    fig.clear()
+
+    ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
+    ax.set_global()
+    ax.coastlines(color='darkgray', linewidth=0.5)
+    gl = ax.gridlines(draw_labels=True, color='#ffffff6a', linestyle='-', linewidth=0.5)
+    gl.top_labels = False
+    gl.right_labels = False
+    ax.add_feature(cfeature.BORDERS, linestyle=':', color="lightgrey")
+    ax.add_feature(cfeature.LAND, facecolor='#f0ede6')
+    ax.add_feature(cfeature.OCEAN, facecolor='#94c5eb')
+    ax.set_title("Mapa widoczności satelitów w danym momencie", fontsize=14)
+
+    sat_radius = Satelite.sat_visibility_radius_time(satelites_epoch, el_mask, minute)
+    for sat_name, (lon, lat, lons, lats) in sat_radius.items():
+        if not lats or not lons:
+            continue
+        prefix = sat_name[:2]
+        lons = lons[::-1]
+        lats = lats[::-1]
+        ax.plot(lon, lat, 'o', color='blue', markersize=5, transform=ccrs.Geodetic())
+        ax.fill(lons, lats, color='red', alpha=0.03, transform=ccrs.Geodetic(), label=sat_name)
+
+    handles, labels = ax.get_legend_handles_labels()
+    unique_labels = dict(zip(labels, handles))
+    

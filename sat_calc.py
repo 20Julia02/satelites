@@ -1,10 +1,13 @@
 from transformations import geodetic_to_cartesian, rotation_matrix_neu
 import numpy as np
 import math
+from pyproj import Geod, Transformer
 
 class Satelite:
     MI = 3.986005 * 10**14
     OMEGA_E = 7.2921151467 * 10**(-5)
+    R = 6371000
+    GEOD = Geod(ellps="WGS84")
 
     def __init__(self, sat_data):
         self.satelite_id = sat_data[0]
@@ -82,6 +85,31 @@ class Satelite:
         elevation = np.arcsin(u/distance)*180/np.pi
         return azimuth, elevation, r, dXYZ
     
+    @staticmethod
+    def sat_visibility_radius_time(satelites_epoch: np.ndarray, el_mask: float = 10.0, minute_index = 0):
+        ecef2geodetic = Transformer.from_crs("epsg:4978", "epsg:4326", always_xy=True)
+        sat_radius = {}
+        for sat_index in range(satelites_epoch.shape[1]):
+            row = satelites_epoch[minute_index][sat_index]
+            if row[1] is None or np.isnan(row[1]) or np.isnan(row[2]) or np.isnan(row[3]):
+                continue 
+            x, y, z = row[1], row[2], row[3]
+            lon, lat, _ = ecef2geodetic.transform(x, y, z)
+            h = np.linalg.norm([x, y, z]) - Satelite.R
+            alfa = np.arccos(Satelite.R * np.cos(np.radians(el_mask))/(Satelite.R + h)) - np.radians(el_mask)
+            d = Satelite.R * alfa 
+            
+            azimuths = np.linspace(0, 360, 100)
+            lats, lons = [], []
+            for az in azimuths:
+                lon2, lat2, _ = Satelite.GEOD.fwd(lon, lat, az, d)
+                if not np.isfinite(lat2) or not np.isfinite(lon2):
+                    continue
+                lats.append(lat2)
+                lons.append(lon2)
+            sat_radius[row[0]] = (lon, lat, lons, lats)
+        return sat_radius
+
 
 class Observer:
     def __init__(self, phi, lam, h):
