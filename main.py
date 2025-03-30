@@ -216,24 +216,24 @@ class ChartsTab(QWidget):
             if widget is not None:
                 widget.setParent(None)
         if self.dop_dict:
-            fig_dop =  Figure(figsize=(6, 5))
+            fig_dop =  Figure(figsize=(9, 5), constrained_layout=True)
             canvas_dop = FigureCanvasQTAgg(fig_dop)
             plot_dop(fig_dop, self.dop_dict)
             self.inner_layout.addWidget(canvas_dop)
         if self.visible_sats_per_minute and self.sat_type:
-            fig_num_sats = Figure(figsize=(6, 5))
+            fig_num_sats = Figure(figsize=(9, 5), constrained_layout=True)
             canvas_num_sats = FigureCanvasQTAgg(fig_num_sats)
             plot_num_sats(fig_num_sats, self.visible_sats_per_minute, self.sat_type)
             self.inner_layout.addWidget(canvas_num_sats)
         if self.satelites_epoch is None:
             return
-        fig_elev = Figure(figsize=(10, 8))
+        fig_elev = Figure(figsize=(9, 8), constrained_layout=True)
         canvas_elev = FigureCanvasQTAgg(fig_elev)
         plot_elevations(fig_elev, self.satelites_epoch, self.el_mask)
         self.inner_layout.addWidget(canvas_elev)
 
         sat_vis = sat_visibility_intervals(self.satelites_epoch, self.el_mask)
-        fig_visibility = Figure(figsize=(5, len(sat_vis) * 0.06))
+        fig_visibility = Figure(figsize=(9, len(sat_vis) * 0.06), constrained_layout=True)
         canvas_visibility = FigureCanvasQTAgg(fig_visibility)
         plot_visibility(fig_visibility, sat_vis)
         self.inner_layout.addWidget(canvas_visibility)

@@ -142,7 +142,7 @@ def plot_dop(fig: Figure, dop_dict: dict):
         borderaxespad=0,
         fontsize=9
     )
-    fig.tight_layout(rect=(0, 0, 1.08, 1))
+    fig.subplots_adjust(left=0.07, right=0.95, top=0.92, bottom=0.12)
 
 
 def plot_num_sats(fig: Figure, time_sats_dict: dict, sat_list):
@@ -189,7 +189,7 @@ def plot_num_sats(fig: Figure, time_sats_dict: dict, sat_list):
         fontsize=9
     )
     ax.set_title('Wykres liczby satelitów w czasie')
-    fig.tight_layout(rect=(0, 0, 1.08, 1))
+    fig.subplots_adjust(left=0.07, right=0.95, top=0.92, bottom=0.12)
 
 
 def plot_visibility(fig: Figure, sat_visibility: dict):
@@ -229,7 +229,7 @@ def plot_visibility(fig: Figure, sat_visibility: dict):
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_minutes))
     ax.grid(True, zorder=1)
     ax.set_title("Okna widoczności satelitów")
-    fig.tight_layout(rect=(0, 0, 1.08, 1))
+    fig.subplots_adjust(left=0.07, right=0.95, top=0.92, bottom=0.12)
 
 def plot_elevations(fig: Figure, satelites_epoch, el_mask=10):
 
@@ -269,8 +269,13 @@ def plot_elevations(fig: Figure, satelites_epoch, el_mask=10):
     ax.set_ylabel('Elewacja [°]')
     ax.set_title('Elewacja satelitów w czasie')
     ax.grid(True)
-    ax.legend(ncol=12, fontsize=7, loc='upper center', bbox_to_anchor=(0.5, -0.1))
-    fig.tight_layout(rect=(0, -0.08, 1, 1))
+    ax.legend(
+    ncol=12,
+    fontsize=7,
+    loc='upper center',
+    bbox_to_anchor=(0.5, -0.15)
+    )
+    fig.subplots_adjust(left=0.07, right=0.95, top=0.92, bottom=0.12)
 
 
 def plot_positions_map(fig, satelites_epoch, observer, minute=0, el_mask=0):
