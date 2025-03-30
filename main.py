@@ -45,11 +45,9 @@ class ParamsTab(QWidget):
         self.day.setDate(QtCore.QDate.currentDate())
         self.day.setMinimumDate(QtCore.QDate(2025, 1, 1))
         self.day.setMaximumDate(QtCore.QDate(2025, 12, 1))
-        self.time = QtWidgets.QTimeEdit()
 
         parameter_layout.addRow("Maska elewacji [°]:", self.elev_cutoff_input)
         parameter_layout.addRow("Wybierz datę: ", self.day)
-        parameter_layout.addRow("Wybierz godzinę: ", self.time)
         parameter_group.setLayout(parameter_layout)
 
         input_group = QGroupBox("Dane wejściowe")
@@ -123,7 +121,6 @@ class ParamsTab(QWidget):
             "h": float(self.h_input.text()),
             "el_mask": self.elev_cutoff_input.value(),
             "date": (qdate.year(), qdate.month(), qdate.day()),
-            "time": self.time.time().toString("HH:mm"),
             "almanac_path": self.almanac_path_input.text(),
             "systems": systems
         }

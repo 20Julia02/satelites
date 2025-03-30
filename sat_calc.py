@@ -99,7 +99,7 @@ class Satelite:
             alfa = np.arccos(Satelite.R * np.cos(np.radians(el_mask))/(Satelite.R + h)) - np.radians(el_mask)
             d = Satelite.R * alfa 
             
-            azimuths = np.linspace(0, 360, 100)
+            azimuths = np.linspace(0, 360, 30)
             lats, lons = [], []
             for az in azimuths:
                 lon2, lat2, _ = Satelite.GEOD.fwd(lon, lat, az, d)

@@ -368,15 +368,26 @@ def plot_visibility_radius(fig, satelites_epoch, minute=0, el_mask=0):
     ax.add_feature(cfeature.OCEAN, facecolor='#94c5eb')
     ax.set_title("Mapa widoczności satelitów w danym momencie", fontsize=14)
 
+    gnss_systems = {
+        "PG": {"label": "GPS",     "color": "#70d6ff"},
+        "PE": {"label": "Galileo", "color": "#ff70a6"},
+        "PR": {"label": "Glonass", "color": "#ff9770"},
+        "PC": {"label": "Beidou",  "color": "#c77dff"},
+    }
+
     sat_radius = Satelite.sat_visibility_radius_time(satelites_epoch, el_mask, minute)
     for sat_name, (lon, lat, lons, lats) in sat_radius.items():
         if not lats or not lons:
             continue
-        prefix = sat_name[:2]
         lons = lons[::-1]
         lats = lats[::-1]
-        ax.plot(lon, lat, 'o', color='blue', markersize=5, transform=ccrs.Geodetic())
-        ax.fill(lons, lats, color='red', alpha=0.03, transform=ccrs.Geodetic(), label=sat_name)
+        system_prefix = sat_name[:2]
+        system = gnss_systems.get(system_prefix)
+
+        ax.plot(lon, lat, 'o', color=system["color"], markersize=5, transform=ccrs.Geodetic())
+        ax.annotate(sat_name[1:], xy=(lon, lat), transform=ccrs.Geodetic(), xytext=(0, 5), textcoords='offset points', ha='center', va='bottom', bbox=dict(boxstyle="round,pad=0.05", fc=system["color"], alpha=0.7), fontsize=10)
+        
+        ax.fill(lons, lats, color='#e63946', alpha=0.04, transform=ccrs.Geodetic(), label=sat_name)
 
     handles, labels = ax.get_legend_handles_labels()
     unique_labels = dict(zip(labels, handles))
