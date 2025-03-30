@@ -10,10 +10,6 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from sat_calc import Satelite
 import cartopy.crs as ccrs
-from shapely.geometry import Polygon
-from cartopy import geodesic
-from cartopy.feature import ShapelyFeature
-
 
 def plot_skyplot_trajectory(
     fig: Figure,
