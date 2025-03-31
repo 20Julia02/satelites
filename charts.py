@@ -9,7 +9,11 @@ from pyproj import Transformer
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from sat_calc import Satelite
-import cartopy.crs as ccrs
+from matplotlib.patches import Patch
+import matplotlib.cm as cm
+import matplotlib.colorbar as colorbar
+import matplotlib.colors as mcolors
+from matplotlib.cm import ScalarMappable
 
 def plot_skyplot_trajectory(
     fig: Figure,
@@ -41,6 +45,7 @@ def plot_skyplot_trajectory(
     ax.set_position([0.1, 0.1, 0.65, 0.75])
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
+    ax.set_title('Skyplot – rozmieszczenie satelitów na niebie')
 
     num_epochs, num_sats, _ = satelites_epoch.shape
 
@@ -136,7 +141,7 @@ def plot_dop(fig: Figure, dop_dict: dict):
     ax.set_ylabel('Wartość DOP')
     ax.grid(True)
     ax.legend()
-    ax.set_title('Wykres wartości DOP w czasie')
+    ax.set_title('Zmiany współczynników DOP w ciągu doby')
     ax.grid(True)
     ax.legend(
         loc="center left",
@@ -144,7 +149,6 @@ def plot_dop(fig: Figure, dop_dict: dict):
         borderaxespad=0,
         fontsize=9
     )
-    fig.subplots_adjust(left=0.07, right=0.95, top=0.92, bottom=0.12)
 
 
 def plot_num_sats(fig: Figure, time_sats_dict: dict, sat_list):
@@ -190,8 +194,7 @@ def plot_num_sats(fig: Figure, time_sats_dict: dict, sat_list):
         borderaxespad=0,
         fontsize=9
     )
-    ax.set_title('Wykres liczby satelitów w czasie')
-    fig.subplots_adjust(left=0.07, right=0.95, top=0.92, bottom=0.12)
+    ax.set_title('Liczba widocznych satelitów w czasie')
 
 
 def plot_visibility(fig: Figure, sat_visibility: dict):
@@ -230,8 +233,7 @@ def plot_visibility(fig: Figure, sat_visibility: dict):
     
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_minutes))
     ax.grid(True, zorder=1)
-    ax.set_title("Okna widoczności satelitów")
-    fig.subplots_adjust(left=0.07, right=0.95, top=0.92, bottom=0.12)
+    ax.set_title("Czasowe okna widoczności satelitów")
 
 def plot_elevations(fig: Figure, satelites_epoch, el_mask=10):
 
@@ -269,7 +271,7 @@ def plot_elevations(fig: Figure, satelites_epoch, el_mask=10):
     ax.set_ylim(0, 90)
     ax.set_xlabel('Czas [godziny]')
     ax.set_ylabel('Elewacja [°]')
-    ax.set_title('Elewacja satelitów w czasie')
+    ax.set_title('Kąty elewacji satelitów w ciągu doby')
     ax.grid(True)
     ax.legend(
     ncol=12,
@@ -277,7 +279,6 @@ def plot_elevations(fig: Figure, satelites_epoch, el_mask=10):
     loc='upper center',
     bbox_to_anchor=(0.5, -0.15)
     )
-    fig.subplots_adjust(left=0.07, right=0.95, top=0.92, bottom=0.12)
 
 
 def plot_positions_map(fig, satelites_epoch, observer, minute=0, el_mask=0):
@@ -297,7 +298,7 @@ def plot_positions_map(fig, satelites_epoch, observer, minute=0, el_mask=0):
     ax.plot(observer[1], observer[0], marker='v', color='#d90429',
         markersize=10, transform=ccrs.Geodetic(), label="Obserwator")
 
-    ax.set_title("Pozycje satelitów na mapie", fontsize=14)
+    ax.set_title("Pozycje satelitów – widok na mapie", fontsize=14)
 
     gnss_systems = {
         "PG": {"label": "GPS",     "color": "#70d6ff"},
@@ -348,7 +349,18 @@ def plot_positions_map(fig, satelites_epoch, observer, minute=0, el_mask=0):
                 lon, lat, alt = ecef2geodetic.transform(current[1], current[2], current[3])
                 ax.plot(lon, lat, 'o', color=system['color'], markersize=5, transform=ccrs.Geodetic())
                 ax.annotate(current[0][1:], xy=(lon, lat), transform=ccrs.Geodetic(), xytext=(0, 5), textcoords='offset points', ha='center', va='bottom', bbox=dict(boxstyle="round,pad=0.05", fc=system["color"], alpha=0.7), fontsize=10)
+    
+    legend_handles = []
+    for system in gnss_systems.values():
+        legend_handles.append(
+            mpatches.Patch(color=system["color"], label=system['label'])
+        )
 
+    ax.legend(handles=legend_handles, 
+            bbox_to_anchor=(1.17, 0.5),
+            borderaxespad=5,
+            fontsize=9)
+    
 def plot_visibility_radius(fig, satelites_epoch, minute=0, el_mask=0):
 
     fig.clear()
@@ -359,10 +371,7 @@ def plot_visibility_radius(fig, satelites_epoch, minute=0, el_mask=0):
     gl = ax.gridlines(draw_labels=True, color='#ffffff6a', linestyle='-', linewidth=0.5)
     gl.top_labels = False
     gl.right_labels = False
-    ax.add_feature(cfeature.BORDERS, linestyle=':', color="lightgrey")
-    ax.add_feature(cfeature.LAND, facecolor='#f0ede6')
-    ax.add_feature(cfeature.OCEAN, facecolor='#94c5eb')
-    ax.set_title("Mapa widoczności satelitów w danym momencie", fontsize=14)
+    ax.set_title("Rozkład liczby widocznych satelitów na świecie", fontsize=14)
 
     gnss_systems = {
         "PG": {"label": "GPS",     "color": "#70d6ff"},
@@ -381,10 +390,28 @@ def plot_visibility_radius(fig, satelites_epoch, minute=0, el_mask=0):
         system = gnss_systems.get(system_prefix)
 
         ax.plot(lon, lat, 'o', color=system["color"], markersize=5, transform=ccrs.Geodetic())
-        ax.annotate(sat_name[1:], xy=(lon, lat), transform=ccrs.Geodetic(), xytext=(0, 5), textcoords='offset points', ha='center', va='bottom', bbox=dict(boxstyle="round,pad=0.05", fc=system["color"], alpha=0.7), fontsize=10)
+        # ax.annotate(sat_name[1:], xy=(lon, lat), transform=ccrs.Geodetic(), xytext=(0, 5), textcoords='offset points', ha='center', va='bottom', bbox=dict(boxstyle="round,pad=0.05", fc=system["color"], alpha=0.7), fontsize=10)
         
-        ax.fill(lons, lats, color='#e63946', alpha=0.04, transform=ccrs.Geodetic(), label=sat_name)
-
-    handles, labels = ax.get_legend_handles_labels()
-    unique_labels = dict(zip(labels, handles))
+        ax.fill(lons, lats, color='#e63946', alpha=0.04, edgecolor='none', transform=ccrs.Geodetic(), label=sat_name)
     
+    legend_handles = []
+    for system in gnss_systems.values():
+        legend_handles.append(
+            mpatches.Patch(color=system["color"], label=system['label'])
+        )
+
+    ax.legend(handles=legend_handles, 
+            bbox_to_anchor=(0.96, 0.5),
+            borderaxespad=5,
+            fontsize=9)
+
+    colors = [(230/255, 57/255, 70/255, a) for a in np.linspace(0.04, 1, 256)]
+    cmap = mcolors.ListedColormap(colors)
+    norm = mcolors.Normalize(vmin=1, vmax=50)
+
+    sm = ScalarMappable(norm=norm, cmap=cmap)
+    sm.set_array([])
+
+    cbar = fig.colorbar(sm, ax=ax, orientation='horizontal', pad=0.05, shrink=0.4, aspect=30)
+
+    cbar.set_label('Przybliżona liczba widocznych satelitów', fontsize=8)

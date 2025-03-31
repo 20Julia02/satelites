@@ -102,7 +102,23 @@ class ParamsTab(QWidget):
         if file_path:
             self.almanac_path_input.setText(file_path)
     
+    def validate_inputs(self):
+        valid = True
+        inputs = [self.lat_input, self.lon_input, self.h_input, self.almanac_path_input]
+
+        for input in inputs:
+            if not input.text().strip():
+                input.setStyleSheet("background-color: #ffcccc;")
+                valid = False
+            else:
+                input.setStyleSheet("")
+
+        return valid
+
+    
     def handle_apply(self):
+        if not self.validate_inputs():
+            return
         systems = set()
         if self.gps_check.isChecked():
             systems.add(0)
@@ -314,6 +330,12 @@ class MapRadiusTab(QWidget):
         layout.addWidget(self.time_label)
         layout.addWidget(self.slider)
 
+        self.timer = QtCore.QTimer(self)
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self.redraw_map)
+
+        self.pending_value = None
+
         self.setLayout(layout)
     
     def update_data(self, satelites_epoch, el_mask):
@@ -323,7 +345,13 @@ class MapRadiusTab(QWidget):
         self.draw_sats_map(0)
     
     def slider_moved(self, value):
-         self.draw_sats_map(value)
+        self.pending_value = value
+        self.timer.start(100)
+    
+    def redraw_map(self):
+        if self.pending_value is not None:
+            self.draw_sats_map(self.pending_value)
+            self.pending_value = None
         
     def draw_sats_map(self, minute_index):
         if self.satelites_epoch is None:
@@ -332,7 +360,6 @@ class MapRadiusTab(QWidget):
         minute = (minute_index * 10) % 60
         time_str = f"{hour:02d}:{minute:02d}"
         self.time_label.setText(f"Godzina: {time_str}")
-
         try:
             plot_visibility_radius(self.figure, self.satelites_epoch, minute_index, self.el_mask)
             self.canvas.draw()
