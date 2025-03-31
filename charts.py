@@ -9,9 +9,6 @@ from pyproj import Transformer
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from sat_calc import Satelite
-from matplotlib.patches import Patch
-import matplotlib.cm as cm
-import matplotlib.colorbar as colorbar
 import matplotlib.colors as mcolors
 from matplotlib.cm import ScalarMappable
 
@@ -158,8 +155,8 @@ def plot_num_sats(fig: Figure, time_sats_dict: dict, sat_list):
 
     system_map = {
         0: ('PG', 'GPS',    "#70d6ff"),
-        1: ('PR', 'GLONASS',"#ff70a6"),
-        2: ('PE', 'GALILEO',"#ff9770"),
+        1: ('PR', 'GLONASS',"#ff9770"),
+        2: ('PE', 'GALILEO',"#ff70a6"),
         3: ('PC', 'BEIDOU' ,"#c77dff")
     }
 
@@ -367,7 +364,7 @@ def plot_visibility_radius(fig, satelites_epoch, minute=0, el_mask=0):
 
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
     ax.set_global()
-    ax.coastlines(color='darkgray', linewidth=0.5)
+    ax.coastlines(color='lightgray', linewidth=0.5)
     gl = ax.gridlines(draw_labels=True, color='#ffffff6a', linestyle='-', linewidth=0.5)
     gl.top_labels = False
     gl.right_labels = False
@@ -390,7 +387,6 @@ def plot_visibility_radius(fig, satelites_epoch, minute=0, el_mask=0):
         system = gnss_systems.get(system_prefix)
 
         ax.plot(lon, lat, 'o', color=system["color"], markersize=5, transform=ccrs.Geodetic())
-        # ax.annotate(sat_name[1:], xy=(lon, lat), transform=ccrs.Geodetic(), xytext=(0, 5), textcoords='offset points', ha='center', va='bottom', bbox=dict(boxstyle="round,pad=0.05", fc=system["color"], alpha=0.7), fontsize=10)
         
         ax.fill(lons, lats, color='#e63946', alpha=0.04, edgecolor='none', transform=ccrs.Geodetic(), label=sat_name)
     

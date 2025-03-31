@@ -34,7 +34,7 @@ class ParamsTab(QWidget):
         location_layout.addRow("Wysokość n.p.m. [m]:", self.h_input)
         location_group.setLayout(location_layout)
 
-        parameter_group = QGroupBox("Czas i maska elewacji")
+        parameter_group = QGroupBox("Data i maska elewacji")
         parameter_layout = QFormLayout()
         self.elev_cutoff_input = QSpinBox()
         self.elev_cutoff_input.setRange(0, 89)
