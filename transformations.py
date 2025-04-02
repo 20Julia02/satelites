@@ -22,7 +22,7 @@ def radius_of_curvature(f, a=6378137, e2=0.00669438002290):
     """
     return a / np.sqrt(1 - e2 * np.sin(f)**2)
 
-def julian_date(year, month, day, hour=0):
+def julian_date(y, m, d, h=0):
     """
     Computes the Julian Date for a given Gregorian date.
     
@@ -35,17 +35,10 @@ def julian_date(year, month, day, hour=0):
     Returns:
     float: Julian Date.
     """
-    if month <= 2:
-        year -= 1
-        month += 12
-    
-    A = math.floor(year / 100)
-    B = 2 - A + math.floor(A / 4)
-    
-    jd = (math.floor(365.25 * (year + 4716)) +
-          math.floor(30.6001 * (month + 1)) + 
-          day + B + hour / 24 - 1537.5)
-    
+    if m <= 2:
+        y = y - 1
+        m = m + 12
+    jd = math.floor(365.25*(y+4716))+math.floor(30.6001*(m+1))+d+h/24-1537.5
     return jd
 
 def geodetic_to_cartesian(f, l, h, a=6378137, e2=0.00669438002290):
@@ -107,3 +100,4 @@ def ymd_to_gps(date):
     seconds_of_week = day_of_week * 86400 + hour * 3600 + minute * 60 + second
     
     return gps_week, seconds_of_week
+

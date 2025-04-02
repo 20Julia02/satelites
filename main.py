@@ -421,9 +421,10 @@ class MainWindow(QMainWindow):
             hour = time_step // 3600
             minute = (time_step % 3600) // 60
             second = time_step % 60
-            _, sec_week = ymd_to_gps([year, month, day, hour, minute, second])
+            week, sec_week = ymd_to_gps([year, month, day, hour, minute, second])
+            print(week, sec_week)
             for iter2 in range(len(satelites)):
-                x_ecef, y_ecef, z_ecef = satelites[iter2].calculate_position(sec_week)
+                x_ecef, y_ecef, z_ecef = satelites[iter2].calculate_position((week-2355)*604800 + sec_week)
                 azimuth, elevation, r, dXYZ = Satelite.calc_topo_cord(np.array([x_ecef, y_ecef, z_ecef]), (observer.phi, observer.lam, observer.h))
                 satelites_epoch[int(time_step / (10 * 60)), iter2] = [satelites[iter2].sat_name, x_ecef, y_ecef, z_ecef, elevation, azimuth]
                 # DOP
@@ -440,6 +441,7 @@ class MainWindow(QMainWindow):
                 A_matrix = np.array(A_list)
                 dop_dict[time_step] = calc_dop(A_matrix, observer.R_neu)
             visible_sats_per_minute[time_step] = visible_count
+        # print(satelites_epoch[0][3])
         return satelites_epoch, dop_dict, visible_sats_per_minute
 
  
