@@ -20,6 +20,7 @@ class Satelite:
         self.time_of_almanac = sat_data[7]
         self.i_orb_inclin = math.radians(54 + sat_data[8])
         self.omega_dot_right_ascen = math.radians(sat_data[9]/1000)
+        self.week = sat_data[12]
     
     def satelite_type(self):
         if self.satelite_id//100 == 0:
@@ -33,9 +34,9 @@ class Satelite:
         num = int(self.satelite_id%100)
         return f"{sat_type}{num:02}"
 
-    def calculate_position(self, sec_week):
+    def calculate_position(self, week, sec_week):
         n_mean_motion = math.sqrt(Satelite.MI/self.a_semi_major_axis**3) 
-        tk_elapsed = sec_week - self.time_of_almanac
+        tk_elapsed = (week-self.week)*604800 + sec_week - self.time_of_almanac
 
         mk_anomally_epoch = self.m0_mean_anomaly + n_mean_motion * tk_elapsed
         eccentr_anomaly = self.solve_eccentric_anomaly(mk_anomally_epoch)
