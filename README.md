@@ -43,6 +43,5 @@ pip install -r requirements.txt
 Uruchomienie
 
 ```bash
-source venv/bin/activate
 python main.py
 ```
