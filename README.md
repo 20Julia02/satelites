@@ -43,8 +43,15 @@ Instalacja zależności:
 pip install -r requirements.txt
 
 ```
+
 Uruchomienie
 
 ```bash
 python main.py
 ```
+
+## Przykładowe okna aplikacji
+
+![Skyplot](images/skyplot.png)
+![Groundtrack](images/groundtrack.png)
+![Visibility](images/widocznosc.png)
