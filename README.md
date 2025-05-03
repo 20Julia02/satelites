@@ -19,10 +19,12 @@ Aplikacja desktopowa umożliwiająca analizę widoczności satelitów GNSS (GPS,
 ## Struktura projektu
 
 | Plik              | Opis |
-|-------------------|------|
-| `main.py`         | Główna aplikacja Qt, kontrola GUI i logiki. |
-| `charts.py`       | Wykresy i wizualizacje. |
-| `sat_calc.py`     | Obliczenia pozycji satelitów i transformacje. |
+|----------------------|------|
+| `main.py`            | Główna aplikacja Qt, kontrola GUI i logiki. |
+| `charts.py`          | Wykresy i wizualizacje. |
+| `sat_calc.py`        | Obliczenia pozycji satelitów. |
+| `transformations.py` | Funkcje pomocnicze użyte do obliczeń |
+| `alm_module.py`      | Funkcje pomocnicze użyte do obliczeń |
 
 ---
 
@@ -33,6 +35,7 @@ Aplikacja desktopowa umożliwiająca analizę widoczności satelitów GNSS (GPS,
 - `matplotlib`
 - `numpy`
 - `pyproj`
+- Pełna lista zależności znajduje się w pliku requirements.txt.
 
 Instalacja zależności:
 
