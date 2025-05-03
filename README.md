@@ -1,6 +1,6 @@
 # Aplikacja GNSS – Analiza widoczności satelitów i wskaźników DOP
 
-Interaktywna aplikacja desktopowa umożliwiająca analizę widoczności satelitów GNSS (GPS, GLONASS, Galileo, BeiDou) oraz zmian współczynników DOP w ciągu doby, na podstawie danych z plików almanacha w formacie `.alm`.
+Aplikacja desktopowa umożliwiająca analizę widoczności satelitów GNSS (GPS, GLONASS, Galileo, BeiDou) oraz zmian współczynników DOP w ciągu doby, na podstawie danych z plików almanacha w formacie `.alm`.
 
 ---
 
@@ -11,7 +11,7 @@ Interaktywna aplikacja desktopowa umożliwiająca analizę widoczności satelit�
 - Obliczanie trajektorii i pozycji satelitów w układzie ECEF
 - Skyplot – rozmieszczenie satelitów na niebie
 - Mapa zasięgu satelitów na świecie
-- Obsługa wielu systemów GNSS: **GPS, Galileo, GLONASS, BeiDou**
+- Obsługa systemów GNSS: **GPS, Galileo, GLONASS, BeiDou**
 - Interfejs graficzny oparty na **PyQt6** i **matplotlib**
 
 ---
