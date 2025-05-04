@@ -54,4 +54,4 @@ python main.py
 
 ![Skyplot](images/skyplot.png)
 ![Groundtrack](images/groundtrack.png)
-![Visibility](images/widocznosc.png)
+![Visibility](images/visibility.png)
